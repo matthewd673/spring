@@ -18,7 +18,7 @@ function createCanvas(width, height, parent = document)
     newCanvas.setAttribute("width", stringWidth);
     newCanvas.setAttribute("height", stringHeight);
     
-    if(parent == null)
+    if(parent === null)
     {
         document.body.appendChild(newCanvas);
     }
@@ -52,7 +52,7 @@ class Sprite
         this.ready = false;
         
         var image = new Image();
-        image.onload = function() { this.ready = true; }
+        image.onload = function() { this.ready = true; };
         image.src = imageSource;
         
         this.image = image;
@@ -69,7 +69,6 @@ class Shape
     constructor(type, width, height, color, filled = false, x = 0, y = 0)
     {
         this.render = true;
-        this.ready = false;
         
         this.type = type.toLowerCase();
         this.width = width;
@@ -80,6 +79,27 @@ class Shape
         this.y = y;
     }
     
+}
+
+class Line
+{
+    constructor(startPoint, endPoint, color)
+    {
+        this.render = true;
+        
+        this.startPoint = startPoint;
+        this.endPoint = endPoint;
+        this.color = color;
+    }
+}
+
+class Point
+{
+    constructor(x, y)
+    {
+        this.x = x;
+        this.y = y;
+    }
 }
 //END RENDERING CLASSES
 
@@ -155,7 +175,12 @@ function render()
                 context.drawImage(current.image, current.x, current.y);
             if(type == "Shape")
             {
-                //IMPLEMENT COLOR
+                //set color
+                if(current.filled)
+                    context.fillStyle = current.color;
+                else
+                    context.strokeStyle = current.color;
+                
                 if(current.type == "rectangle")
                 {
                     if(current.filled)
@@ -166,11 +191,6 @@ function render()
                 if(current.type == "circle")
                 {
                     var radius = current.width / 2;
-                    
-                    if(current.filled)
-                        context.fillStyle = current.color;
-                    else
-                        context.strokeStyle = current.color;
                     
                     context.beginPath();
                     context.arc(current.x + radius, current.y + radius, radius, 0, 2 * Math.PI);
@@ -183,6 +203,15 @@ function render()
                         context.stroke();
                 }
             }
+            if(type == "Line")
+            {
+                context.strokeStyle = current.color;
+                
+                context.beginPath();
+                context.moveTo(current.startPoint.x, current.startPoint.y);
+                context.lineTo(current.endPoint.x, current.endPoint.y);
+                context.stroke();
+            }
         }
     }
     
@@ -193,7 +222,7 @@ function render()
 
 function draw(renderObject, x = null, y = null)
 {
-    if(x != null && y != null)
+    if(x !== null && y !== null)
     {
         renderObject.x = x;
         renderObject.y = y;
@@ -204,8 +233,12 @@ function draw(renderObject, x = null, y = null)
 function inFrame(renderObject)
 {
     var type = renderObject.constructor.name;
+    var specialCheck = false;
+    
+    if(type == "Line")
+        specialCheck = true;
 
-    if(renderObject.x > canvasBounding.width || renderObject.y > canvasBounding.height || (renderObject.x + renderObject.width) < 0 || (renderObject.y + renderObject.height) < 0) //incomplete
+    if(!specialCheck && renderObject.x > canvasBounding.width || renderObject.y > canvasBounding.height || (renderObject.x + renderObject.width) < 0 || (renderObject.y + renderObject.height) < 0) //incomplete
         return false;
     else
         return true;

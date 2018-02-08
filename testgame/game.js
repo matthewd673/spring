@@ -16,8 +16,8 @@ onUpdate = function()
     
     for(var i = 0; i < boxes.length; i++)
     {
-        boxes[i].x++;
-        boxes[i].y++;
+        //boxes[i].x++;
+        //boxes[i].y++;
         draw(boxes[i]);
     }
     
@@ -39,6 +39,8 @@ onMouseMove = function(x, y)
 {
     //var newSprite = new Sprite("sprite.png", 32, 32, x, y);
     //boxes.push(newSprite);
-    var newShape = new Shape("circle", 32, 32, "#00ff55", false, x, y);
-    boxes.push(newShape);
+    //var newShape = new Shape("rectangle", 32, 32, "#00ff55", false, x, y);
+    newLine = new Line(new Point(x, y), new Point(0, 0), "blue");
+    
+    boxes.push(newLine);
 }
