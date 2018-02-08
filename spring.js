@@ -101,6 +101,21 @@ class Point
         this.y = y;
     }
 }
+
+class Text
+{
+    constructor(message, font = "12px monospace", color = "black", filled = true, x = 0, y = 0)
+    {
+        this.render = true;
+        
+        this.message = message;
+        this.font = font;
+        this.color = color;
+        this.filled = filled;
+        this.x = x;
+        this.y = y;
+    }
+}
 //END RENDERING CLASSES
 
 //RENDERING HELPERS
@@ -211,6 +226,20 @@ function render()
                 context.moveTo(current.startPoint.x, current.startPoint.y);
                 context.lineTo(current.endPoint.x, current.endPoint.y);
                 context.stroke();
+            }
+            if(type == "Text")
+            {
+                if(current.filled)
+                    context.fillStyle = current.color;
+                else
+                    context.strokeStyle = current.color;
+                    
+                context.font = current.font;
+                
+                if(current.filled)
+                    context.fillText(current.message, current.x, current.y);
+                else
+                    context.strokeText(current.message, current.x, current.y);
             }
         }
     }

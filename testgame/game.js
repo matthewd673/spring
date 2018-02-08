@@ -23,6 +23,9 @@ onUpdate = function()
     
     draw(mySprite);
     
+    draw(new Text("hello world!", "60px monospace", "yellow", false, 50, 50));
+    draw(new Text("hello again", "40px Arial", "orange", true, 70, 70));
+    
 }
 
 function removeSprite()
