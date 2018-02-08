@@ -66,7 +66,7 @@ class Sprite
 
 class Shape
 {
-    constructor(type, width, height, filled = false, x = 0, y = 0)
+    constructor(type, width, height, color, filled = false, x = 0, y = 0)
     {
         this.render = true;
         this.ready = false;
@@ -74,6 +74,7 @@ class Shape
         this.type = type.toLowerCase();
         this.width = width;
         this.height = height;
+        this.color = color;
         this.filled = filled;
         this.x = x;
         this.y = y;
@@ -154,11 +155,33 @@ function render()
                 context.drawImage(current.image, current.x, current.y);
             if(type == "Shape")
             {
+                //IMPLEMENT COLOR
                 if(current.type == "rectangle")
+                {
                     if(current.filled)
                         context.fillRect(current.x, current.y, current.width, current.height);
                     else
                         context.strokeRect(current.x, current.y, current.width, current.height);
+                }
+                if(current.type == "circle")
+                {
+                    var radius = current.width / 2;
+                    
+                    if(current.filled)
+                        context.fillStyle = current.color;
+                    else
+                        context.strokeStyle = current.color;
+                    
+                    context.beginPath();
+                    context.arc(current.x + radius, current.y + radius, radius, 0, 2 * Math.PI);
+                    if(current.filled)
+                    {
+                        context.closePath();
+                        context.fill();
+                    }
+                    else
+                        context.stroke();
+                }
             }
         }
     }

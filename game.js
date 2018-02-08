@@ -39,6 +39,6 @@ onMouseMove = function(x, y)
 {
     //var newSprite = new Sprite("sprite.png", 32, 32, x, y);
     //boxes.push(newSprite);
-    var newShape = new Shape("rectangle", 32, 32, true, x, y);
+    var newShape = new Shape("circle", 32, 32, "#00ff55", false, x, y);
     boxes.push(newShape);
 }
