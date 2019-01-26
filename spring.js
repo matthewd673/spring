@@ -6,7 +6,7 @@ var resourcesReady;
 var renderList = [];
 
 //SETUP
-function createCanvas(width, height, parent = document)
+function createCanvas(width, height, parent = document.body)
 {
     var canvasCode = "<canvas id='spring-surface'></canvas>";
     
@@ -18,14 +18,7 @@ function createCanvas(width, height, parent = document)
     newCanvas.setAttribute("width", stringWidth);
     newCanvas.setAttribute("height", stringHeight);
     
-    if(parent === null)
-    {
-        document.body.appendChild(newCanvas);
-    }
-    else
-    {
-        parent.appendChild(newCanvas);
-    }
+    parent.appendChild(newCanvas);
     
     canvas = newCanvas;
     context = canvas.getContext("2d");
