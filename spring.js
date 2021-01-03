@@ -8,18 +8,36 @@ var renderList = [];
 
 var mouseX = 0;
 var mouseY = 0;
+var mouseDown = false;
+var leftMouseDown = false;
+var middleMouseDown = false;
+var rightMouseDown = false;
 
 //SETUP
-function createCanvas(width, height, parent = document.body)
+window.onload = function() {
+    onStart();
+}
+
+function onStart() { }
+
+function createCanvas(width, height, container = "")
 {
     var newCanvas = document.createElement("canvas");
     newCanvas.setAttribute("id", "spring-surface");
     newCanvas.setAttribute("width", width.toString());
     newCanvas.setAttribute("height", height.toString());
-    
-    parent.appendChild(newCanvas);
+
+    newCanvas.oncontextmenu = function(event) {
+        event.preventDefault();
+    }
     
     canvas = newCanvas;
+
+    if (container != "")
+        document.getElementById(container).appendChild(canvas);
+    else
+        document.body.appendChild(canvas);
+    
     context = canvas.getContext("2d");
     canvasBounding = canvas.getBoundingClientRect();
     setupInput();
@@ -58,28 +76,9 @@ class Sprite
     
 }
 
-class Shape
-{
-    constructor(type, x, y, width, height, color, filled = false)
-    {
-        this.render = true;
-        
-        this.type = type.toLowerCase();
-        this.x = x;
-        this.y = y;
-        this.width = width;
-        this.height = height;
-        this.color = color;
-        this.filled = filled;
-
-        entityList.push(this);
-    }
-    
-}
-
 class Rectangle
 {
-    constructor(x, y, width, height, color = "black", filled = false)
+    constructor(x, y, width, height, color = "black", filled = true)
     {
         this.render = true;
 
@@ -96,7 +95,7 @@ class Rectangle
 
 class Circle
 {
-    constructor(x, y, radius, color = "black", filled = false)
+    constructor(x, y, radius, color = "black", filled = true)
     {
         this.render = render;
         
@@ -161,6 +160,11 @@ function show(renderObject)
 {
     renderObject.render = true;
 }
+
+function toggle(renderObject)
+{
+    renderObject.render = !renderObject.render;
+}
 //END RENDERING HELPERS
 
 //INPUT SETUP
@@ -168,16 +172,21 @@ function setupInput()
 {
     canvas.addEventListener("click", canvasClicked);
     canvas.addEventListener("mousemove", canvasMouseMoved);
+    canvas.addEventListener("mousedown", canvasMouseDown);
+    canvas.addEventListener("mouseup", canvasMouseUp);
+
+    window.addEventListener("keydown", windowKeyDown);
+    window.addEventListener("keyup", windowKeyUp);
+    window.addEventListener("keypress", windowKeyPress);
 }
 //END INPUT SETUP
 
 //INPUT STUFF
 function canvasClicked(event)
 {
-    onClick(mouseX, mouseY);
+    onClick(getMouseButton(event.button));
 }
-
-function onClick(x, y) { }
+function onClick(button) { }
 
 function canvasMouseMoved(event)
 {
@@ -185,10 +194,77 @@ function canvasMouseMoved(event)
     mouseY = event.clientY - canvasBounding.top;
     onMouseMove(mouseX, mouseY);
 }
-
 function onMouseMove(x, y) { }
 
+function canvasMouseDown(event)
+{
+    mouseDown = true;
+    if (event.button == 0)
+        leftMouseDown = true;
+    if (event.button == 1)
+        middleMouseDown = true;
+    if (event.button == 2)
+        rightMouseDown = true;
+    
+    onMouseDown(getMouseButton(event.button));
+}
+function onMouseDown(button) { }
+
+function canvasMouseUp(event)
+{
+    mouseDown = false;
+    if (event.button == 0)
+        leftMouseDown = false;
+    if (event.button == 1)
+        middleMouseDown = false;
+    if (event.button == 2)
+        rightMouseDown = false;
+    
+    onMouseUp(getMouseButton(event.button));
+}
+function onMouseUp(button) { }
+
+function windowKeyDown(event)
+{
+    onKeyDown(new Key(event.keyCode, String.fromCharCode(event.keyCode)));
+}
+function onKeyDown(key) { }
+
+function windowKeyUp(event)
+{
+    onKeyUp(new Key(event.keyCode, String.fromCharCode(event.keyCode)));
+}
+function onKeyUp(key) { }
+
+function windowKeyPress(event)
+{
+    onKeyPress(new Key(event.keyCode, String.fromCharCode(event.keyCode)));
+}
+function onKeyPress(key) { }
+
+function getMouseButton(button)
+{
+    if (button == 0)
+        return "left";
+    if (button == 1)
+        return "middle";
+    if (button == 2)
+        return "right;"
+}
+
 //END INPUT
+
+//INPUT CLASSES
+
+class Key
+{
+    constructor(code, char)
+    {
+        this.code = code;
+        this.char = char;
+    }
+}
+//END INPUT CLASSES
 
 //UPDATE FUNCTIONS
 function update()
@@ -224,37 +300,7 @@ function render()
         if(current.render && inFrame(current))
         {
             if(type == "Sprite")
-                context.drawImage(current.image, current.x, current.y);
-            if(type == "Shape")
-            {
-                //set color
-                if(current.filled)
-                    context.fillStyle = current.color;
-                else
-                    context.strokeStyle = current.color;
-                
-                if(current.type == "rectangle")
-                {
-                    if(current.filled)
-                        context.fillRect(current.x, current.y, current.width, current.height);
-                    else
-                        context.strokeRect(current.x, current.y, current.width, current.height);
-                }
-                if(current.type == "circle")
-                {
-                    var radius = current.width / 2;
-                    
-                    context.beginPath();
-                    context.arc(current.x + radius, current.y + radius, radius, 0, 2 * Math.PI);
-                    if(current.filled)
-                    {
-                        context.closePath();
-                        context.fill();
-                    }
-                    else
-                        context.stroke();
-                }
-            }
+                context.drawImage(current.image, current.x, current.y, current.width, current.height);
             if(type == "Rectangle")
             {
                 if(current.filled)
@@ -348,4 +394,30 @@ function inFrame(renderObject)
 function play(fps = 60)
 {
     window.setInterval(update, 1000 / fps);
+}
+
+//UTILITIES
+function getPNG()
+{
+    canvas.toDataURL("image/png");
+}
+
+function randInt(min = 0, max = 1)
+{
+    return Math.round(Math.random() * (max - min) + min);
+}
+
+function hideCursor()
+{
+    canvas.style.cursor = "none";
+}
+
+function showCursor()
+{
+    canvas.style.cursor = "normal";
+}
+
+function outlineCanvas()
+{
+    canvas.style.border = "1px solid black";
 }

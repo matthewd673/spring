@@ -5,7 +5,7 @@ var helloText;
 var hello2Text;
 var mouseText;
 
-window.onload = function()
+onStart = function()
 {
     //document.write("loaded");
     createCanvas(800, 600, document.getElementById("container"));
@@ -59,12 +59,19 @@ function countSprites()
     console.log("Sprites: " + (boxes.length));
 }
 
+function clearSprites()
+{
+    boxes.splice(0, boxes.length);
+}
+
 onMouseMove = function(x, y)
 {
-    //var newSprite = new Sprite("sprite.png", 32, 32, x, y);
-    //boxes.push(newSprite);
+    if (mouseDown) {
+        var newSprite = new Sprite("sprite.png", x, y, 16, 16);
+        boxes.push(newSprite);
+    }
     //var newShape = new Shape("rectangle", 32, 32, "#00ff55", false, x, y);
-    newLine = new Line(new Point(x, y), new Point(0, 0), "blue");
+    //newLine = new Line(new Point(x, y), new Point(0, 0), "blue");
     
-    boxes.push(newLine);
+    //boxes.push(newLine);
 }
