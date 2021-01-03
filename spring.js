@@ -3,20 +3,19 @@ var context;
 var canvasBounding;
 var resourcesReady;
 
+var entityList = [];
 var renderList = [];
+
+var mouseX = 0;
+var mouseY = 0;
 
 //SETUP
 function createCanvas(width, height, parent = document.body)
 {
-    var canvasCode = "<canvas id='spring-surface'></canvas>";
-    
-    var stringWidth = width.toString();
-    var stringHeight = height.toString();
-    
     var newCanvas = document.createElement("canvas");
     newCanvas.setAttribute("id", "spring-surface");
-    newCanvas.setAttribute("width", stringWidth);
-    newCanvas.setAttribute("height", stringHeight);
+    newCanvas.setAttribute("width", width.toString());
+    newCanvas.setAttribute("height", height.toString());
     
     parent.appendChild(newCanvas);
     
@@ -39,7 +38,7 @@ function setCanvas(canvasId)
 class Sprite
 {
     
-    constructor(imageSource, width, height, x = 0, y = 0)
+    constructor(imageSource, x, y, width, height,)
     {
         this.render = true;
         this.ready = false;
@@ -49,29 +48,66 @@ class Sprite
         image.src = imageSource;
         
         this.image = image;
-        this.width = width;
-        this.height = height;
         this.x = x;
         this.y = y;
+        this.width = width;
+        this.height = height;
+
+        entityList.push(this);
     }
     
 }
 
 class Shape
 {
-    constructor(type, width, height, color, filled = false, x = 0, y = 0)
+    constructor(type, x, y, width, height, color, filled = false)
     {
         this.render = true;
         
         this.type = type.toLowerCase();
+        this.x = x;
+        this.y = y;
         this.width = width;
         this.height = height;
         this.color = color;
         this.filled = filled;
-        this.x = x;
-        this.y = y;
+
+        entityList.push(this);
     }
     
+}
+
+class Rectangle
+{
+    constructor(x, y, width, height, color = "black", filled = false)
+    {
+        this.render = true;
+
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+        this.color = color;
+        this.filled = filled;
+
+        entityList.push(this);
+    }
+}
+
+class Circle
+{
+    constructor(x, y, radius, color = "black", filled = false)
+    {
+        this.render = render;
+        
+        this.x = x;
+        this.y = y;
+        this.radius = radius;
+        this.color = color;
+        this.filled = filled;
+
+        entityList.push(this);
+    }
 }
 
 class Line
@@ -83,6 +119,8 @@ class Line
         this.startPoint = startPoint;
         this.endPoint = endPoint;
         this.color = color;
+
+        entityList.push(this);
     }
 }
 
@@ -97,16 +135,18 @@ class Point
 
 class Text
 {
-    constructor(message, font = "12px monospace", color = "black", filled = true, x = 0, y = 0)
+    constructor(text, x = 0, y = 0, font = "12px serif", color = "black", filled = true)
     {
         this.render = true;
         
-        this.message = message;
+        this.text = text;
+        this.x = x;
+        this.y = y;
         this.font = font;
         this.color = color;
         this.filled = filled;
-        this.x = x;
-        this.y = y;
+
+        entityList.push(this);
     }
 }
 //END RENDERING CLASSES
@@ -134,14 +174,16 @@ function setupInput()
 //INPUT STUFF
 function canvasClicked(event)
 {
-    onClick(event.clientX - canvasBounding.left, event.clientY - canvasBounding.top);
+    onClick(mouseX, mouseY);
 }
 
 function onClick(x, y) { }
 
 function canvasMouseMoved(event)
 {
-    onMouseMove(event.clientX - canvasBounding.left, event.clientY - canvasBounding.top);
+    mouseX = event.clientX - canvasBounding.left;
+    mouseY = event.clientY - canvasBounding.top;
+    onMouseMove(mouseX, mouseY);
 }
 
 function onMouseMove(x, y) { }
@@ -171,6 +213,8 @@ function onUpdate() {} //just here to prevent errors
 
 function render()
 {
+    onRender();
+
     context.clearRect(0, 0, canvas.width, canvas.height);
     for(var i = 0; i < renderList.length; i++)
     {
@@ -211,6 +255,37 @@ function render()
                         context.stroke();
                 }
             }
+            if(type == "Rectangle")
+            {
+                if(current.filled)
+                {
+                    context.fillStyle = current.color;
+                    context.fillRect(current.x, current.y, current.width, current.height);
+                }
+                else
+                {
+                    context.strokeStyle = current.color;
+                    context.strokeRect(current.x, current.y, current.width, current.height);
+                }
+            }
+            if(type == "Circle")
+            {
+                if(current.filled)
+                    context.fillStyle = current.color;
+                else
+                    context.strokeStyle = current.color;
+                    
+                context.beginPath();
+                context.arc(current.x + current.radius, current.y + current.radius, current.radius, 0, 2 * Math.PI);
+                if(current.filled)
+                {
+                    context.closePath();
+                    context.fill();
+                }
+                else
+                    context.stroke();
+                
+            }
             if(type == "Line")
             {
                 context.strokeStyle = current.color;
@@ -230,9 +305,9 @@ function render()
                 context.font = current.font;
                 
                 if(current.filled)
-                    context.fillText(current.message, current.x, current.y);
+                    context.fillText(current.text, current.x, current.y);
                 else
-                    context.strokeText(current.message, current.x, current.y);
+                    context.strokeText(current.text, current.x, current.y);
             }
         }
     }
@@ -240,16 +315,19 @@ function render()
     renderList.splice(0, renderList.length);
     
 }
+
+function onRender() { drawAll(); } //draw all by default
+
 //END UPDATE FUNCTIONS
 
-function draw(renderObject, x = null, y = null)
+function draw(renderObject)
 {
-    if(x !== null && y !== null)
-    {
-        renderObject.x = x;
-        renderObject.y = y;
-    }
     renderList.push(renderObject);
+}
+
+function drawAll()
+{
+    entityList.forEach(renderObject => renderList.push(renderObject));
 }
 
 function inFrame(renderObject)

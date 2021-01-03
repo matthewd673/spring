@@ -1,19 +1,32 @@
 var mySprite;
 var boxes = [];
 
+var helloText;
+var hello2Text;
+var mouseText;
+
 window.onload = function()
 {
     //document.write("loaded");
     createCanvas(800, 600, document.getElementById("container"));
-    mySprite = new Sprite("sprite.png", 32, 32);
+    mySprite = new Sprite("sprite.png", 0, 0, 32, 32);
+
+    helloText = new Text("hello world!", 50, 50, "60px monospace", "green", false);
+    hello2Text = new Text("hello again", 70, 70, "40px Arial", "orange");
+    mouseText = new Text(mouseX + " " + mouseY, 700, 500);
+
     play();
 }
 
 onUpdate = function()
 {
+    //update logic
     mySprite.x++;
     mySprite.y++;
-    
+}
+
+onRender = function()
+{
     for(var i = 0; i < boxes.length; i++)
     {
         //boxes[i].x++;
@@ -21,11 +34,19 @@ onUpdate = function()
         draw(boxes[i]);
     }
     
+    //draw sprite
     draw(mySprite);
     
-    draw(new Text("hello world!", "60px monospace", "yellow", false, 50, 50));
-    draw(new Text("hello again", "40px Arial", "orange", true, 70, 70));
-    
+    mouseText.text = "M: " + mouseX + ", " + mouseY;
+
+    //draw text
+    draw(helloText)
+    draw(hello2Text)
+    draw(mouseText)
+
+    //draw test shapes
+    draw(new Rectangle(150, 150, 20, 40, "#ff00ff", true));
+    draw(new Circle(200, 150, 15, "cyan", true));
 }
 
 function removeSprite()
