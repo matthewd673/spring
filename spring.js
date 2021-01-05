@@ -13,6 +13,8 @@ var leftMouseDown = false;
 var middleMouseDown = false;
 var rightMouseDown = false;
 
+var automaticEntities = true;
+
 //SETUP
 window.onload = function() {
     onStart();
@@ -71,7 +73,8 @@ class Sprite
         this.width = width;
         this.height = height;
 
-        entityList.push(this);
+        if (automaticEntities)
+            entityList.push(this);
     }
     
 }
@@ -89,7 +92,8 @@ class Rectangle
         this.color = color;
         this.filled = filled;
 
-        entityList.push(this);
+        if (automaticEntities)
+            entityList.push(this);
     }
 }
 
@@ -105,7 +109,8 @@ class Circle
         this.color = color;
         this.filled = filled;
 
-        entityList.push(this);
+        if (automaticEntities)
+            entityList.push(this);
     }
 }
 
@@ -119,7 +124,8 @@ class Line
         this.endPoint = endPoint;
         this.color = color;
 
-        entityList.push(this);
+        if (automaticEntities)
+            entityList.push(this);
     }
 }
 
@@ -145,7 +151,8 @@ class Text
         this.color = color;
         this.filled = filled;
 
-        entityList.push(this);
+        if (automaticEntities)
+            entityList.push(this);
     }
 }
 //END RENDERING CLASSES
@@ -289,7 +296,15 @@ function onUpdate() {} //just here to prevent errors
 
 function render()
 {
+
+    //turn off automatic entities for entities created in render loop
+    var oldEntitySetting = automaticEntities;
+    automaticEntities = false;
+
     onRender();
+
+    //revert
+    automaticEntities = oldEntitySetting;
 
     context.clearRect(0, 0, canvas.width, canvas.height);
     for(var i = 0; i < renderList.length; i++)
@@ -420,4 +435,9 @@ function showCursor()
 function outlineCanvas()
 {
     canvas.style.border = "1px solid black";
+}
+
+function disableAutomaticEntities()
+{
+    automaticEntities = false;
 }
