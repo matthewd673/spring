@@ -1,3 +1,8 @@
+/*
+ *  THIS EXAMPLE IS OUT OF DATE
+ *  AND USES THE SPRING v1 API
+ */
+
 var mySprite;
 var boxes = [];
 

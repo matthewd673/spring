@@ -1,10 +1,141 @@
-var canvas;
-var context;
-var canvasBounding;
-var resourcesReady;
+const TWOPI = 2*Math.PI;
 
-var entityList = [];
-var renderList = [];
+let springInstance = {
+    canvas: undefined,
+    run: false,
+};
+
+class SpringCanvas {
+    #updateFunction     = () => {};
+    #renderFunction     = () => {};
+
+    #clickFunction      = () => {};
+    #mousemoveFunction  = () => {};
+    #mousedownFunction  = () => {};
+    #mouseupFunction    = () => {};
+
+    constructor(canvasElement) {
+        // setup graphics
+        this.canvas = canvasElement;
+        this.context = this.canvas.getContext("2d");
+        this.bounding = this.canvas.getBoundingClientRect();
+
+        this.mouseState = new MouseState();
+
+        // setup input
+        this.canvas.addEventListener("click", () => {
+            this.#clickFunction();
+        });
+        this.canvas.addEventListener("mousemove", (e) => {
+            this.mouseState.x = e.clientX - this.bounding.x;
+            this.mouseState.y = e.clientY - this.bounding.y;
+
+            this.#mousemoveFunction();
+        });
+        this.canvas.addEventListener("mousedown", (e) => {
+            this.mouseState.buttons.left    = (e.buttons & 0x1);
+            this.mouseState.buttons.right   = (e.buttons & 0x2);
+            this.mouseState.buttons.middle  = (e.buttons & 0x4);
+
+            this.#mousedownFunction();
+        });
+        this.canvas.addEventListener("mouseup", (e) => {
+            this.mouseState.buttons.left    = (e.buttons & 0x1);
+            this.mouseState.buttons.right   = (e.buttons & 0x2);
+            this.mouseState.buttons.middle  = (e.buttons & 0x4);
+
+            this.#mouseupFunction();
+        });
+    }
+    
+    onClick(fn)     { this.#clickFunction = fn; }
+    onMouseMove(fn) { this.#mousemoveFunction = fn; }
+    onMouseDown(fn) { this.#mousedownFunction = fn; }
+    onMouseUp(fn)   { this.#mouseupFunction = fn; }
+    // TODO: keyboard input
+
+    // render helpers
+    #setColor(color) {
+        this.context.fillStyle = color;
+        this.context.strokeStyle = color;
+    }
+    drawSprite(sprite) {
+        this.context.drawImage(sprite.image, sprite.x, sprite.y, sprite.width, sprite.height);
+    }
+
+    drawRectangle(rectangle) {
+        this.#setColor(rectangle.color);
+        if (rectangle.filled) {
+            this.context.fillRect(rectangle.x, rectangle.y, rectangle.width, rectangle.height);
+        }
+        else {
+            this.context.strokeRect(rectangle.x, rectangle.y, rectangle.width, rectangle.height);
+        }
+    }
+
+    drawCircle(circle) {
+        this.#setColor(circle.color);
+
+        this.context.beginPath();
+        this.context.arc(circle.x + circle.radius,
+                         circle.y + circle.radius,
+                         circle.radius, 0, TWOPI);
+        
+        if (circle.filled) {
+            this.context.closePath();
+            this.context.fill();
+        }
+        else { this.context.stroke(); }
+    }
+
+    drawLine(line) {
+        this.#setColor(line.color);
+
+        this.context.beginPath();
+        this.context.moveTo(line.startPoint.x, line.startPoint.y);
+        this.context.lineTo(line.endPoint.x, line.endPoint.y);
+
+        this.context.stroke();
+    }
+
+    drawText(text) {
+        this.#setColor(text.color);
+        this.context.font = text.font;
+
+        if (text.filled)    { this.context.fillText(text.text, text.x, text.y); }
+        else                { this.context.strokeText(text.text, text.x, text.y); }
+    }
+
+    // game loop
+    update() { this.#updateFunction(); }
+    render() {
+        this.context.clearRect(0, 0, this.bounding.width, this.bounding.height);
+        this.#renderFunction();
+    }
+
+    onUpdate(fn) { this.#updateFunction = fn; }
+    onRender(fn) { this.#renderFunction = fn; }
+
+    begin() {
+        springInstance = this;
+        springInstance.run = true;
+        window.requestAnimationFrame(springInstanceLoop);
+    }
+
+    end() {
+        springInstance.run = false;
+    }
+}
+
+const springInstanceLoop = () => {
+    if (!springInstance.run) return;
+    springInstance.update();
+    springInstance.render();
+    window.requestAnimationFrame(springInstanceLoop);
+}
+
+
+var resourcesReady;
 
 var mouseX = 0;
 var mouseY = 0;
@@ -13,58 +144,42 @@ var leftMouseDown = false;
 var middleMouseDown = false;
 var rightMouseDown = false;
 
-var automaticEntities = true;
-
 //SETUP
-window.onload = function() {
-    onStart();
-}
-
-function onStart() { }
-
-function createCanvas(width, height, container = "")
+const createCanvas = (width, height, container = "") =>
 {
-    var newCanvas = document.createElement("canvas");
-    newCanvas.setAttribute("id", "spring-surface");
-    newCanvas.setAttribute("width", width.toString());
-    newCanvas.setAttribute("height", height.toString());
+    const canvas = document.createElement("canvas");
+    canvas.setAttribute("id", "spring-canvas");
+    canvas.setAttribute("width", width.toString());
+    canvas.setAttribute("height", height.toString());
+    canvas.oncontextmenu = (e) => { e.preventDefault(); }
 
-    newCanvas.oncontextmenu = function(event) {
-        event.preventDefault();
-    }
-    
-    canvas = newCanvas;
-
-    if (container != "")
+    if (container !== "")
         document.getElementById(container).appendChild(canvas);
     else
         document.body.appendChild(canvas);
     
-    context = canvas.getContext("2d");
-    canvasBounding = canvas.getBoundingClientRect();
-    setupInput();
+    // setupInput();
+    return new SpringCanvas(canvas);
 }
 
-function setCanvas(canvasId)
+const setCanvas = (id) =>
 {
-    canvas = document.getElementById(canvasId);
-    context = canvas.getContext("2d");
-    canvasBounding = canvas.getBoundingClientRect();
-    setupInput();
+    canvas = document.getElementById(id);
+
+    // setupInput();
+    return new SpringCanvas(canvas);
 }
 //END SETUP
 
 //RENDERING CLASSES
 class Sprite
 {
-    
     constructor(imageSource, x, y, width, height,)
     {
-        this.render = true;
         this.ready = false;
         
         var image = new Image();
-        image.onload = function() { this.ready = true; };
+        image.onload = () => { this.ready = true; };
         image.src = imageSource;
         
         this.image = image;
@@ -72,28 +187,19 @@ class Sprite
         this.y = y;
         this.width = width;
         this.height = height;
-
-        if (automaticEntities)
-            entityList.push(this);
     }
-    
 }
 
 class Rectangle
 {
     constructor(x, y, width, height, color = "black", filled = true)
     {
-        this.render = true;
-
         this.x = x;
         this.y = y;
         this.width = width;
         this.height = height;
         this.color = color;
         this.filled = filled;
-
-        if (automaticEntities)
-            entityList.push(this);
     }
 }
 
@@ -101,16 +207,11 @@ class Circle
 {
     constructor(x, y, radius, color = "black", filled = true)
     {
-        this.render = render;
-        
         this.x = x;
         this.y = y;
         this.radius = radius;
         this.color = color;
         this.filled = filled;
-
-        if (automaticEntities)
-            entityList.push(this);
     }
 }
 
@@ -118,14 +219,9 @@ class Line
 {
     constructor(startPoint, endPoint, color)
     {
-        this.render = true;
-        
         this.startPoint = startPoint;
         this.endPoint = endPoint;
         this.color = color;
-
-        if (automaticEntities)
-            entityList.push(this);
     }
 }
 
@@ -142,37 +238,15 @@ class Text
 {
     constructor(text, x = 0, y = 0, font = "12px serif", color = "black", filled = true)
     {
-        this.render = true;
-        
         this.text = text;
         this.x = x;
         this.y = y;
         this.font = font;
         this.color = color;
         this.filled = filled;
-
-        if (automaticEntities)
-            entityList.push(this);
     }
 }
 //END RENDERING CLASSES
-
-//RENDERING HELPERS
-function hide(renderObject)
-{
-    renderObject.render = false;
-}
-
-function show(renderObject)
-{
-    renderObject.render = true;
-}
-
-function toggle(renderObject)
-{
-    renderObject.render = !renderObject.render;
-}
-//END RENDERING HELPERS
 
 //INPUT SETUP
 function setupInput()
@@ -189,6 +263,18 @@ function setupInput()
 //END INPUT SETUP
 
 //INPUT STUFF
+class MouseState {
+    constructor() {
+        this.x = 0;
+        this.y = 0;
+        this.buttons = {
+            left:   false,
+            right:  false,
+            middle: false,
+        };
+    }
+}
+
 function canvasClicked(event)
 {
     onClick(getMouseButton(event.button));
@@ -274,108 +360,108 @@ class Key
 //END INPUT CLASSES
 
 //UPDATE FUNCTIONS
-function update()
-{
-    onUpdate();
-    //check each resource to see if it's ready
-    if(!resourcesReady)
-    {
-        var readyCount = 0;
-        for(var i = 0; i < renderList.length; i++)
-        {
-            if(renderList[i].ready)
-                readyCount++;
-        }
-        if(readyCount == renderList.length - 1)
-            resourcesReady = true;
-    }
-    render();
-}
+// function update()
+// {
+//     onUpdate();
+//     //check each resource to see if it's ready
+//     if(!resourcesReady)
+//     {
+//         var readyCount = 0;
+//         for(var i = 0; i < renderList.length; i++)
+//         {
+//             if(renderList[i].ready)
+//                 readyCount++;
+//         }
+//         if(readyCount == renderList.length - 1)
+//             resourcesReady = true;
+//     }
+//     render();
+// }
 
 function onUpdate() {} //just here to prevent errors
 
-function render()
-{
+// function render()
+// {
 
-    //turn off automatic entities for entities created in render loop
-    var oldEntitySetting = automaticEntities;
-    automaticEntities = false;
+//     //turn off automatic entities for entities created in render loop
+//     var oldEntitySetting = automaticEntities;
+//     automaticEntities = false;
 
-    onRender();
+//     onRender();
 
-    //revert
-    automaticEntities = oldEntitySetting;
+//     //revert
+//     automaticEntities = oldEntitySetting;
 
-    context.clearRect(0, 0, canvas.width, canvas.height);
-    for(var i = 0; i < renderList.length; i++)
-    {
-        var current = renderList[i];
-        var type = current.constructor.name;
+//     context.clearRect(0, 0, canvas.width, canvas.height);
+//     for(var i = 0; i < renderList.length; i++)
+//     {
+//         var current = renderList[i];
+//         var type = current.constructor.name;
         
-        if(current.render && inFrame(current))
-        {
-            if(type == "Sprite")
-                context.drawImage(current.image, current.x, current.y, current.width, current.height);
-            if(type == "Rectangle")
-            {
-                if(current.filled)
-                {
-                    context.fillStyle = current.color;
-                    context.fillRect(current.x, current.y, current.width, current.height);
-                }
-                else
-                {
-                    context.strokeStyle = current.color;
-                    context.strokeRect(current.x, current.y, current.width, current.height);
-                }
-            }
-            if(type == "Circle")
-            {
-                if(current.filled)
-                    context.fillStyle = current.color;
-                else
-                    context.strokeStyle = current.color;
+//         if(current.render && inFrame(current))
+//         {
+//             if(type == "Sprite")
+//                 context.drawImage(current.image, current.x, current.y, current.width, current.height);
+//             if(type == "Rectangle")
+//             {
+//                 if(current.filled)
+//                 {
+//                     context.fillStyle = current.color;
+//                     context.fillRect(current.x, current.y, current.width, current.height);
+//                 }
+//                 else
+//                 {
+//                     context.strokeStyle = current.color;
+//                     context.strokeRect(current.x, current.y, current.width, current.height);
+//                 }
+//             }
+//             if(type == "Circle")
+//             {
+//                 if(current.filled)
+//                     context.fillStyle = current.color;
+//                 else
+//                     context.strokeStyle = current.color;
                     
-                context.beginPath();
-                context.arc(current.x + current.radius, current.y + current.radius, current.radius, 0, 2 * Math.PI);
-                if(current.filled)
-                {
-                    context.closePath();
-                    context.fill();
-                }
-                else
-                    context.stroke();
+//                 context.beginPath();
+//                 context.arc(current.x + current.radius, current.y + current.radius, current.radius, 0, 2 * Math.PI);
+//                 if(current.filled)
+//                 {
+//                     context.closePath();
+//                     context.fill();
+//                 }
+//                 else
+//                     context.stroke();
                 
-            }
-            if(type == "Line")
-            {
-                context.strokeStyle = current.color;
+//             }
+//             if(type == "Line")
+//             {
+//                 context.strokeStyle = current.color;
                 
-                context.beginPath();
-                context.moveTo(current.startPoint.x, current.startPoint.y);
-                context.lineTo(current.endPoint.x, current.endPoint.y);
-                context.stroke();
-            }
-            if(type == "Text")
-            {
-                if(current.filled)
-                    context.fillStyle = current.color;
-                else
-                    context.strokeStyle = current.color;
+//                 context.beginPath();
+//                 context.moveTo(current.startPoint.x, current.startPoint.y);
+//                 context.lineTo(current.endPoint.x, current.endPoint.y);
+//                 context.stroke();
+//             }
+//             if(type == "Text")
+//             {
+//                 if(current.filled)
+//                     context.fillStyle = current.color;
+//                 else
+//                     context.strokeStyle = current.color;
                     
-                context.font = current.font;
+//                 context.font = current.font;
                 
-                if(current.filled)
-                    context.fillText(current.text, current.x, current.y);
-                else
-                    context.strokeText(current.text, current.x, current.y);
-            }
-        }
-    }
+//                 if(current.filled)
+//                     context.fillText(current.text, current.x, current.y);
+//                 else
+//                     context.strokeText(current.text, current.x, current.y);
+//             }
+//         }
+//     }
     
-    renderList.splice(0, renderList.length);
+//     renderList.splice(0, renderList.length);
     
-}
+// }
 
 function onRender() { drawAll(); } //draw all by default
 
